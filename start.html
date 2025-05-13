@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火柴人羽毛球对战 - 开始页面</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-image: url('./开始.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 60px;
+            background: linear-gradient(45deg, #FFB6C1 20%, #68d0f3 80%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: SimSun, serif;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 10px;
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button i {
+            margin-right: 10px;
+        }
+
+        /* 漏漏No 模式按钮 */
+        #mode1 {
+            background-color: rgba(255, 105, 180, 0.4);
+        }
+
+        #mode1:hover {
+            background-color: rgba(255, 69, 169, 0.6);
+        }
+
+        /* 比分制小游戏 模式按钮 */
+        #mode2 {
+            background-color: rgba(100, 149, 237, 0.4);
+        }
+
+        #mode2:hover {
+            background-color: rgba(65, 105, 225, 0.6);
+        }
+
+        .hint {
+            color: white;
+            font-size: 16px;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            position: absolute;
+            bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>羽宙第一</h1>
+    <button id="mode1" onclick="window.location.href='gaga.html'">
+        <i class="fa-solid fa-feather-pointed"></i> 漏漏No
+    </button>
+    <button id="mode2" onclick="window.location.href='gaga2.html'">
+        <i class="fa-solid fa-badminton"></i> 人机大战
+    </button>
+    <div class="hint">开始游戏后请横屏手机</div>
+</body>
+
+</html>    
