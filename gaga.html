@@ -88,6 +88,8 @@
             <div id="resultContent">
                 <p id="resultText">游戏结束，是否再来一局？</p>
                 <button id="playAgainButton">再来一局</button>
+                <!-- 添加返回首页按钮 -->
+                <button id="returnHomeButton">返回首页</button>
             </div>
         </div>
     </div>
@@ -99,6 +101,8 @@
         const scoreDisplay = document.getElementById('scoreDisplay');
         const resultModal = document.getElementById('resultModal');
         const playAgainButton = document.getElementById('playAgainButton');
+        // 获取返回首页按钮
+        const returnHomeButton = document.getElementById('returnHomeButton');
 
         // 调整画布大小以适应手机横屏
         canvas.width = window.innerWidth * 0.8;
@@ -227,6 +231,12 @@
         // 重新开始游戏按钮事件
         restartButton.addEventListener('click', function () {
             restartGame();
+        });
+
+        // 返回首页按钮事件
+        returnHomeButton.addEventListener('click', function () {
+            // 这里可以添加返回首页的逻辑，例如跳转到指定页面
+            window.location.href = 'index.html'; // 请替换为实际首页的 URL
         });
 
         // 开始游戏
