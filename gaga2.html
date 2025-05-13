@@ -214,6 +214,8 @@
                 <img id="resultImage" src="" alt="结果图片">
                 <p id="resultText"></p>
                 <button id="playAgainButton">再来一局</button>
+                <!-- 添加返回首页按钮 -->
+                <button id="backToHomeButton">返回首页</button>
             </div>
         </div>
     </div>
@@ -230,6 +232,8 @@
         const playAgainButton = document.getElementById('playAgainButton');
         const startGameButton = document.getElementById('startGameButton');
         const restartGameButton = document.getElementById('restartGameButton');
+        // 获取返回首页按钮
+        const backToHomeButton = document.getElementById('backToHomeButton');
 
         // 调整画布大小以适应手机横屏
         canvas.width = window.innerWidth * 0.8;
@@ -713,9 +717,14 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // 返回首页按钮事件
+        backToHomeButton.addEventListener('click', function () {
+            // 这里可以根据实际情况修改跳转的首页地址
+            window.location.href = './index.html'; 
+        });
+
         gameLoop();
     </script>
 </body>
 
 </html>
-    
