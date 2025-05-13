@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>火柴人羽毛球对战</title>
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            overflow: hidden;
+        }
+
+       .control-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 20%;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        button {
+            margin: 10px 0;
+            padding: 10px 20px;
+            font-size: clamp(12px, 2vw, 16px);
+            cursor: pointer;
+            background: linear-gradient(to right, #c59bf2 0%, #8eb3f2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        button:hover {
+            background: linear-gradient(to right, #7ca8f3 0%, #b57bf3 100%);
+        }
+
+       .game-container {
+            position: relative;
+            width: 80%;
+            height: 100vh;
+        }
+
+        canvas {
+            border: 1px solid black;
+            background-image: url('./羽毛球场背景.jpg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        #resultModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #resultContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="control-panel">
+        <button id="startButton">开始游戏</button>
+        <button id="restartButton" disabled>重新开始游戏</button>
+        <span id="scoreDisplay">得分: 0</span>
+    </div>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="resultModal">
+            <div id="resultContent">
+                <p id="resultText">游戏结束，是否再来一局？</p>
+                <button id="playAgainButton">再来一局</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const resultModal = document.getElementById('resultModal');
+        const playAgainButton = document.getElementById('playAgainButton');
+
+        // 调整画布大小以适应手机横屏
+        canvas.width = window.innerWidth * 0.8;
+        canvas.height = window.innerHeight;
+
+        // 加载图片
+        const playerImage = new Image();
+        playerImage.src = './小白.png'; // 请替换为实际玩家图片文件名
+
+        const computer1Image = new Image();
+        computer1Image.src = './金毛.png'; // 请替换为实际电脑1图片文件名
+
+        const computer2Image = new Image();
+        computer2Image.src = './史迪仔.png'; // 请替换为实际电脑2图片文件名
+
+        const ballImage = new Image();
+        ballImage.src = './羽毛球.png'; // 请替换为实际羽毛球图片文件名
+
+        // 初始玩家和电脑大小
+        let basePlayerWidth = 50;
+        let basePlayerHeight = 100;
+        let baseComputerWidth = 50;
+        let baseComputerHeight = 100;
+
+        // 缩放比例
+        let scale = Math.min(canvas.width / 800, canvas.height / 600);
+
+        // 玩家属性
+        let playerX = canvas.width - 150 * scale;
+        let playerY = canvas.height / 2 - basePlayerHeight * scale / 2;
+        let playerWidth = basePlayerWidth * scale;
+        let playerHeight = basePlayerHeight * scale;
+
+        // 第一个电脑属性
+        let computer1X = 100 * scale;
+        let computer1Y = canvas.height / 2 - baseComputerHeight * scale / 2;
+        let computer1Width = baseComputerWidth * scale;
+        let computer1Height = baseComputerHeight * scale;
+
+        // 第二个电脑属性
+        let computer2X = 150 * scale;
+        let computer2Y = canvas.height / 2 - baseComputerHeight * scale / 2;
+        let computer2Width = baseComputerWidth * scale;
+        let computer2Height = baseComputerHeight * scale;
+
+        // 羽毛球数组
+        let balls = [];
+        const MAX_BALLS = 5;
+        let ballWidth = 20 * scale;
+        let ballHeight = 20 * scale;
+
+        // 游戏状态
+        let isPlaying = false;
+        let gameStartTime = 0;
+        let score = 0;
+        let lastBallAddTime = 0;
+
+        // 绘制玩家
+        function drawPlayer() {
+            ctx.drawImage(playerImage, playerX, playerY, playerWidth, playerHeight);
+        }
+
+        // 绘制第一个电脑
+        function drawComputer1() {
+            ctx.drawImage(computer1Image, computer1X, computer1Y, computer1Width, computer1Height);
+        }
+
+        // 绘制第二个电脑
+        function drawComputer2() {
+            ctx.drawImage(computer2Image, computer2X, computer2Y, computer2Width, computer2Height);
+        }
+
+        // 绘制羽毛球
+        function drawBalls() {
+            balls.forEach(ball => {
+                ctx.save();
+                if (ball.flipped) {
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(ballImage, -ball.x - ballWidth / 2, ball.y - ballHeight / 2, ballWidth, ballHeight);
+                } else {
+                    ctx.drawImage(ballImage, ball.x - ballWidth / 2, ball.y - ballHeight / 2, ballWidth, ballHeight);
+                }
+                ctx.restore();
+            });
+        }
+
+        // 处理鼠标移动
+        canvas.addEventListener('mousemove', function (e) {
+            if (isPlaying) {
+                const rect = canvas.getBoundingClientRect();
+                playerY = e.clientY - rect.top - playerHeight / 2;
+                if (playerY < 0) {
+                    playerY = 0;
+                } else if (playerY > canvas.height - playerHeight) {
+                    playerY = canvas.height - playerHeight;
+                }
+            }
+        });
+
+        // 处理触摸移动
+        canvas.addEventListener('touchmove', function (e) {
+            e.preventDefault();
+            if (isPlaying) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                playerY = touch.clientY - rect.top - playerHeight / 2;
+                if (playerY < 0) {
+                    playerY = 0;
+                } else if (playerY > canvas.height - playerHeight) {
+                    playerY = canvas.height - playerHeight;
+                }
+            }
+        }, { passive: false });
+
+        // 再来一局按钮事件
+        playAgainButton.addEventListener('click', function () {
+            resultModal.style.display = 'none';
+            restartGame();
+        });
+
+        // 开始游戏按钮事件
+        startButton.addEventListener('click', function () {
+            startGame();
+        });
+
+        // 重新开始游戏按钮事件
+        restartButton.addEventListener('click', function () {
+            restartGame();
+        });
+
+        // 开始游戏
+        function startGame() {
+            isPlaying = true;
+            gameStartTime = Date.now();
+            lastBallAddTime = gameStartTime;
+            score = 0;
+            scoreDisplay.textContent = `得分: ${score}`;
+            balls = [{
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                speedX: 4 * scale,
+                speedY: getRandomSpeed() * scale,
+                flipped: false
+            }];
+            startButton.disabled = true;
+            restartButton.disabled = false;
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            startGame();
+        }
+
+        // 获取随机的 y 方向速度
+        function getRandomSpeed() {
+            return (Math.random() * 3 - 1.5);
+        }
+
+        // 电脑AI（优化逻辑，根据球数量决定策略）
+        function computerAI() {
+            if (balls.length <= 2) {
+                // 球数量较少时，两个电脑相邻移动
+                const targetBalls = balls.filter(ball => ball.speedX < 0);
+                if (targetBalls.length > 0) {
+                    const closestBall = targetBalls.reduce((prev, current) => {
+                        return (prev.x < current.x)? prev : current;
+                    });
+                    const timeToReach = (closestBall.x - (computer1X + computer1Width)) / -closestBall.speedX;
+                    const predictedY = closestBall.y + closestBall.speedY * timeToReach;
+
+                    const distanceToMove = predictedY - (computer1Y + computer1Height / 2);
+                    const maxMove = 15 * scale;
+                    const moveAmount = Math.min(Math.abs(distanceToMove), maxMove) * Math.sign(distanceToMove);
+
+                    computer1Y += moveAmount;
+                    computer2Y += moveAmount;
+                }
+            } else {
+                // 球数量较多时，两个电脑分开接球
+                const leftBalls = balls.filter(ball => ball.speedX < 0 && ball.y < canvas.height / 2);
+                const rightBalls = balls.filter(ball => ball.speedX < 0 && ball.y >= canvas.height / 2);
+
+                if (leftBalls.length > 0) {
+                    const closestLeftBall = leftBalls.reduce((prev, current) => {
+                        return (prev.x < current.x)? prev : current;
+                    });
+                    const timeToReachLeft = (closestLeftBall.x - (computer1X + computer1Width)) / -closestLeftBall.speedX;
+                    const predictedYLeft = closestLeftBall.y + closestLeftBall.speedY * timeToReachLeft;
+
+                    const distanceToMoveLeft = predictedYLeft - (computer1Y + computer1Height / 2);
+                    const maxMove = 15 * scale;
+                    const moveAmountLeft = Math.min(Math.abs(distanceToMoveLeft), maxMove) * Math.sign(distanceToMoveLeft);
+
+                    computer1Y += moveAmountLeft;
+                }
+
+                if (rightBalls.length > 0) {
+                    const closestRightBall = rightBalls.reduce((prev, current) => {
+                        return (prev.x < current.x)? prev : current;
+                    });
+                    const timeToReachRight = (closestRightBall.x - (computer2X + computer2Width)) / -closestRightBall.speedX;
+                    const predictedYRight = closestRightBall.y + closestRightBall.speedY * timeToReachRight;
+
+                    const distanceToMoveRight = predictedYRight - (computer2Y + computer2Height / 2);
+                    const maxMove = 15 * scale;
+                    const moveAmountRight = Math.min(Math.abs(distanceToMoveRight), maxMove) * Math.sign(distanceToMoveRight);
+
+                    computer2Y += moveAmountRight;
+                }
+            }
+
+            if (computer1Y < 0) {
+                computer1Y = 0;
+            } else if (computer1Y > canvas.height - computer1Height) {
+                computer1Y = canvas.height - computer1Height;
+            }
+
+            if (computer2Y < 0) {
+                computer2Y = 0;
+            } else if (computer2Y > canvas.height - computer2Height) {
+                computer2Y = canvas.height - computer2Height;
+            }
+        }
+
+        // 检查碰撞
+        function checkCollisions() {
+            balls.forEach((ball, index) => {
+                // 边界碰撞检测
+                if (ball.y - ballHeight / 2 < 0) {
+                    ball.y = ballHeight / 2;
+                    ball.speedY = -ball.speedY;
+                } else if (ball.y + ballHeight / 2 > canvas.height) {
+                    ball.y = canvas.height - ballHeight / 2;
+                    ball.speedY = -ball.speedY;
+                }
+
+                // 玩家碰撞检测
+                if (ball.x + ballWidth / 2 > playerX && ball.x - ballWidth / 2 < playerX + playerWidth &&
+                    ball.y + ballHeight / 2 > playerY && ball.y - ballHeight / 2 < playerY + playerHeight) {
+                    if (ball.speedX > 0) {
+                        ball.x = playerX - ballWidth / 2;
+                    } else {
+                        ball.x = playerX + playerWidth + ballWidth / 2;
+                    }
+                    ball.speedX = -ball.speedX;
+                    ball.flipped =!ball.flipped;
+                    score++;
+                    scoreDisplay.textContent = `得分: ${score}`;
+                }
+
+                // 第一个电脑碰撞检测
+                if (ball.x - ballWidth / 2 < computer1X + computer1Width && ball.x + ballWidth / 2 > computer1X &&
+                    ball.y + ballHeight / 2 > computer1Y && ball.y - ballHeight / 2 < computer1Y + computer1Height) {
+                    if (ball.speedX < 0) {
+                        ball.x = computer1X + computer1Width + ballWidth / 2;
+                    } else {
+                        ball.x = computer1X - ballWidth / 2;
+                    }
+                    ball.speedX = -ball.speedX;
+                    ball.flipped =!ball.flipped;
+                }
+
+                // 第二个电脑碰撞检测
+                if (ball.x - ballWidth / 2 < computer2X + computer2Width && ball.x + ballWidth / 2 > computer2X &&
+                    ball.y + ballHeight / 2 > computer2Y && ball.y - ballHeight / 2 < computer2Y + computer2Height) {
+                    if (ball.speedX < 0) {
+                        ball.x = computer2X + computer2Width + ballWidth / 2;
+                    } else {
+                        ball.x = computer2X - ballWidth / 2;
+                    }
+                    ball.speedX = -ball.speedX;
+                    ball.flipped =!ball.flipped;
+                }
+
+                // 出界检测
+                if (ball.x < 0 || ball.x > canvas.width) {
+                    score = 0;
+                    scoreDisplay.textContent = `得分: ${score}`;
+                    endGame();
+                }
+            });
+        }
+
+        // 结束游戏
+        function endGame() {
+            isPlaying = false;
+            startButton.disabled = false;
+            restartButton.disabled = true;
+            balls = [];
+            resultModal.style.display = 'flex';
+        }
+
+        // 游戏循环
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (isPlaying) {
+                const currentTime = Date.now();
+                const elapsedTime = currentTime - gameStartTime;
+
+                // 每 5 秒增加一个球，最多 5 个
+                if (currentTime - lastBallAddTime >= 5000 && balls.length < MAX_BALLS) {
+                    balls.push({
+                        x: canvas.width / 2,
+                        y: canvas.height / 2,
+                        speedX: 4 * scale,
+                        speedY: getRandomSpeed() * scale,
+                        flipped: false
+                    });
+                    lastBallAddTime = currentTime;
+                }
+
+                // 加快球的速度
+                if (elapsedTime % 5000 === 0) {
+                    balls.forEach(ball => {
+                        ball.speedX *= 1.1;
+                        ball.speedY *= 1.1;
+                    });
+                }
+
+                balls.forEach(ball => {
+                    ball.x += ball.speedX;
+                    ball.y += ball.speedY;
+                });
+
+                computerAI();
+                checkCollisions();
+            }
+
+            drawPlayer();
+            drawComputer1();
+            drawComputer2();
+            drawBalls();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+
+</html>
